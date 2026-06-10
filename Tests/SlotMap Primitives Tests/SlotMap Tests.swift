@@ -17,20 +17,13 @@ private typealias Slots<E: ~Copyable> =
 private typealias MoveMap<E: ~Copyable> = SlotMap<Slots<E>>
 private typealias CoWMap<E: ~Copyable> = SlotMap<Shared<E, Slots<E>>>
 
-// ⚠️ DEBUG CARVE-OUT (2026-06-10, ADT-families leg 7): every functional suite below is
-// compiled out of DEBUG test runs and verified in RELEASE ONLY. A 6.3.2 DEBUG-mode
-// codegen bug (§A9 family; EXC_BAD_ACCESS at 0x10 in compiler-synthesized accessors,
-// ASLR-sensitive) crashes ANY generic-extension member of a generic ~Copyable wrapper
-// struct whose field is `Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>` —
-// same-module or cross-module, @frozen or not, @inlinable or not, witness or concrete
-// pin, Tagged or Bool returns (all bisected). The identical wrapper shape over the
-// ring/linear columns is green everywhere, and bare generic FUNCTIONS over the
-// generational column are green (the arena suite's [DS-024] law run). Release builds
-// pass all suites deterministically. Minimal repro preserved at
-// .handoffs/probes-2026-06-10/slotmap-debug-crash/; root-cause arc = a queued
-// /issue-investigation (candidate fix: the column's internal representation).
-// Precedent: the set-ordered §A9 guards.
-#if !DEBUG
+// The LEG-7 DEBUG carve-out is LIFTED (W5-1, 2026-06-10): the wall was root-caused as
+// catalog §A15 (the runtime cannot verify a conditional conformance with a same-type
+// ~Copyable RHS) and RETIRED by the Memory.Pooling re-bound — Storage.Generational's
+// seam conformance conditions are inverse-only now (arena 208c8d1 over pool 9dd38e7).
+// The preserved repro probe (.handoffs/probes-2026-06-10/slotmap-debug-crash/) passes
+// debug AND release against the re-bound packages; every suite below runs in BOTH
+// configs again, and the [DS-024] Shared-generational law test is re-enabled.
 
 // MARK: - [DS-024]: the Shared-wrapped generational column is lawful (the direct
 // column's law-run lives in the arena suite; this is the family's NEW composite)
@@ -38,15 +31,7 @@ private typealias CoWMap<E: ~Copyable> = SlotMap<Shared<E, Slots<E>>>
 @Suite
 struct SlotMapColumnLawTests {
 
-    @Test(.disabled("""
-        6.3.2 §A9-family RELEASE crash: the seam witnesses THROUGH Shared over the
-        generational column (generic law fn → Shared witness → Generational member)
-        EXC_BAD_ACCESS — the only release-crashing path, and also the only path the
-        SlotMap surface never uses (handle ops + withUnique). [DS-024] verification
-        carve-out, pending the queued /issue-investigation; every other column's laws
-        are verified (arena: direct generational; shared/queue/array: Shared over
-        linear + both rings).
-        """))
+    @Test
     func `the shared generational column obeys the seam ledger laws`() {
         let violations = Seam.Ledger.violations(
             makeEmpty: { Shared(Slots<Int>.create(slotCapacity: 4)) },
@@ -242,8 +227,6 @@ private enum MapProbe2 {
     static func recordDestroy(_ id: Int) { unsafe _destroyed.append(id) }
     static var destroyedSorted: [Int] { unsafe _destroyed.sorted() }
 }
-
-#endif
 
 // MARK: - Sendable smoke
 
