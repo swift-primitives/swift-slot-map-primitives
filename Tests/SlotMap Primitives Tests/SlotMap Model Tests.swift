@@ -110,54 +110,22 @@ private struct Reference {
     }
 }
 
-// MARK: - The death census (the move-only direct lane)
-
-private final class Census {
-    var born: [Int] = []
-    var died: [Int] = []
-
-    func mint() -> Int {
-        let serial = born.count
-        born.append(serial)
-        return serial
-    }
-
-    func record(death serial: Int) {
-        died.append(serial)
-    }
-}
-
-private struct TrackedItem: ~Copyable {
-    let id: Int
-    let serial: Int
-    private let census: Census
-
-    init(id: Int, census: Census) {
-        self.id = id
-        self.census = census
-        self.serial = census.mint()
-    }
-
-    deinit {
-        census.record(death: serial)
-    }
-}
-
-// MARK: - The direct move-only lane (handle laws + teardown exactness)
+// MARK: - The direct move-only lane (handle laws + teardown exactness; the
+// census + the tracked element are the hoisted Model fixtures — W3-0)
 
 private struct DirectStream: ~Copyable {
-    var map: MoveMap<TrackedItem>
+    var map: MoveMap<Model.Element.Tracked>
     var model: Reference
     var rng: Model.Random
     var verdict: Model.Verdict
     var nextID = 0
     var expectedDeaths = 0
-    let census: Census
+    let census: Model.Census
 
-    init(seed: UInt64, census: Census) {
+    init(seed: UInt64, census: Model.Census) {
         var rng = Model.Random(seed: seed)
         let capacity = 2 + rng.below(11)
-        self.map = MoveMap<TrackedItem>(slotCapacity: capacity)
+        self.map = MoveMap<Model.Element.Tracked>(slotCapacity: capacity)
         self.model = Reference(capacity: capacity)
         self.rng = rng
         self.verdict = Model.Verdict(seed: seed)
@@ -167,7 +135,7 @@ private struct DirectStream: ~Copyable {
     mutating func insertNew() {
         let id = nextID
         nextID += 1
-        let handle = map.insert(TrackedItem(id: id, census: census))
+        let handle = map.insert(Model.Element.Tracked(id: id, census: census))
         verdict.record("insert id=\(id) → @\(handle.index)g\(handle.generation)")
         verdict.diverged(model.admit(handle, id: id))
     }
@@ -176,7 +144,7 @@ private struct DirectStream: ~Copyable {
         let position = rng.below(model.live.count)
         let entry = model.live[position]
         verdict.record("remove id=\(entry.id)")
-        if let element: TrackedItem = map.remove(entry.handle) {
+        if let element: Model.Element.Tracked = map.remove(entry.handle) {
             if element.id != entry.id {
                 verdict.diverged(["remove returned id \(element.id), model \(entry.id)"])
             }
@@ -190,7 +158,7 @@ private struct DirectStream: ~Copyable {
     mutating func removeStale() {
         let entry = model.stale[rng.below(model.stale.count)]
         verdict.record("stale-remove @\(entry.handle.index)g\(entry.handle.generation)")
-        if let element: TrackedItem = map.remove(entry.handle) {
+        if let element: Model.Element.Tracked = map.remove(entry.handle) {
             verdict.diverged(["STALE handle re-validated through remove (β): id \(element.id)"])
         }
     }
@@ -198,7 +166,7 @@ private struct DirectStream: ~Copyable {
     mutating func readLive() {
         let entry = model.live[rng.below(model.live.count)]
         verdict.record("read id=\(entry.id)")
-        let id = map.withElement(at: entry.handle) { (element: borrowing TrackedItem) in element.id }
+        let id = map.withElement(at: entry.handle) { (element: borrowing Model.Element.Tracked) in element.id }
         if id != entry.id {
             verdict.diverged(["withElement at live handle: \(id), model \(entry.id)"])
         }
@@ -211,8 +179,8 @@ private struct DirectStream: ~Copyable {
         nextID += 1
         verdict.record("mutate @\(entry.handle.index) \(entry.id)→\(id)")
         let census = self.census
-        map.withMutableElement(at: entry.handle) { (element: inout TrackedItem) in
-            element = TrackedItem(id: id, census: census)
+        map.withMutableElement(at: entry.handle) { (element: inout Model.Element.Tracked) in
+            element = Model.Element.Tracked(id: id, census: census)
         }
         expectedDeaths += 1  // the displaced element
         model.live[position].id = id
@@ -241,7 +209,7 @@ private struct DirectStream: ~Copyable {
     mutating func forEachCheck() {
         verdict.record("walk \(model.liveCount)")
         var seen: [Int] = []
-        map.forEach { (element: borrowing TrackedItem) in seen.append(element.id) }
+        map.forEach { (element: borrowing Model.Element.Tracked) in seen.append(element.id) }
         let expected = model.idsInSlotOrder
         if seen != expected {
             verdict.diverged(["forEach walked \(seen), model slot order \(expected)"])
@@ -257,20 +225,20 @@ private struct DirectStream: ~Copyable {
 
     func audit() -> [String] {
         var findings: [String] = []
-        if map.count != Index<TrackedItem>.Count(UInt(model.liveCount)) {
+        if map.count != Index<Model.Element.Tracked>.Count(UInt(model.liveCount)) {
             findings.append("count: map \(map.count), model \(model.liveCount)")
         }
-        if map.capacity != Index<TrackedItem>.Count(UInt(model.capacity)) {
+        if map.capacity != Index<Model.Element.Tracked>.Count(UInt(model.capacity)) {
             findings.append("capacity: map \(map.capacity), model \(model.capacity)")
         }
-        if map.freeCapacity != Index<TrackedItem>.Count(UInt(model.capacity - model.liveCount)) {
+        if map.freeCapacity != Index<Model.Element.Tracked>.Count(UInt(model.capacity - model.liveCount)) {
             findings.append("freeCapacity: map \(map.freeCapacity), model \(model.capacity - model.liveCount)")
         }
         for entry in model.live {
             if !map.contains(entry.handle) {
                 findings.append("α: live handle @\(entry.handle.index)g\(entry.handle.generation) rejected")
             } else {
-                let id = map.withElement(at: entry.handle) { (element: borrowing TrackedItem) in element.id }
+                let id = map.withElement(at: entry.handle) { (element: borrowing Model.Element.Tracked) in element.id }
                 if id != entry.id {
                     findings.append("live handle resolves \(id), model \(entry.id)")
                 }
@@ -324,7 +292,7 @@ private struct DirectStream: ~Copyable {
 }
 
 private func runDirectStream(seed: UInt64) -> Model.Verdict {
-    let census = Census()
+    let census = Model.Census()
     var stream = DirectStream(seed: seed, census: census)
     stream.run()
     let (finished, expectedDeaths, liveAtEnd) = stream.finish()  // the map dies here
