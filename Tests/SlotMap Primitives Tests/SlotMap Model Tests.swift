@@ -125,7 +125,7 @@ private struct DirectStream: ~Copyable {
     init(seed: UInt64, census: Model.Census) {
         var rng = Model.Random(seed: seed)
         let capacity = 2 + rng.below(11)
-        self.map = MoveMap<Model.Element.Tracked>(slotCapacity: capacity)
+        self.map = MoveMap<Model.Element.Tracked>(slotCapacity: Index<Model.Element.Tracked>.Count(UInt(capacity)))
         self.model = Reference(capacity: capacity)
         self.rng = rng
         self.verdict = Model.Verdict(seed: seed)
@@ -323,7 +323,7 @@ private struct CloneStream: ~Copyable {
     init(seed: UInt64) {
         var rng = Model.Random(seed: seed)
         let capacity = 2 + rng.below(11)
-        self.map = MoveMap<Int>(slotCapacity: capacity)
+        self.map = MoveMap<Int>(slotCapacity: Index<Int>.Count(UInt(capacity)))
         self.model = Reference(capacity: capacity)
         self.rng = rng
         self.verdict = Model.Verdict(seed: seed)
@@ -484,7 +484,7 @@ private struct FleetStream {
     init(seed: UInt64) {
         var rng = Model.Random(seed: seed)
         let capacity = 4 + rng.below(9)
-        self.siblings = [CoWMap<Int>(slotCapacity: capacity)]
+        self.siblings = [CoWMap<Int>(slotCapacity: Index<Int>.Count(UInt(capacity)))]
         self.models = [Reference(capacity: capacity)]
         self.rng = rng
         self.verdict = Model.Verdict(seed: seed)

@@ -86,8 +86,9 @@ extension SlotMap where S: ~Copyable {
 
 extension SlotMap where S: ~Copyable {
     /// Creates an empty MOVE-ONLY slot map (the default ownership column).
+    /// Typed count per the conversions discipline (Round M A3).
     @inlinable
-    public init<E: ~Copyable>(slotCapacity: Int)
+    public init<E: ~Copyable>(slotCapacity: Index<E>.Count)
     where S == Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E> {
         self.init(store: S.create(slotCapacity: slotCapacity))
     }
@@ -97,7 +98,7 @@ extension SlotMap where S: ~Copyable {
     /// Outstanding handles survive copy-on-write detaches: the column's clone strategy
     /// preserves slot indices, occupancy, and generations exactly.
     @inlinable
-    public init<E>(slotCapacity: Int)
+    public init<E>(slotCapacity: Index<E>.Count)
     where S == Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
         self.init(store: Shared(
             Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>.create(slotCapacity: slotCapacity)
@@ -107,7 +108,7 @@ extension SlotMap where S: ~Copyable {
     /// Creates an empty statically-unique slot map of move-only elements on the
     /// `Shared` column (the boxed flavor of the move-only regime).
     @inlinable
-    public init<E: ~Copyable>(slotCapacity: Int)
+    public init<E: ~Copyable>(slotCapacity: Index<E>.Count)
     where S == Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
         self.init(store: Shared(
             Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>.create(slotCapacity: slotCapacity)

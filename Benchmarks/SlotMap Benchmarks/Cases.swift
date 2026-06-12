@@ -60,12 +60,12 @@ extension Bench {
             let seed = opaque(1)
 
             // setup: live maps + handle streams (outside timed regions)
-            var m = MoveMap<Int>(slotCapacity: n)
+            var m = MoveMap<Int>(slotCapacity: Index<Int>.Count(UInt(n)))
             var liveHandles: [Store.Generational.Handle] = []
             liveHandles.reserveCapacity(n)
             for i in 0..<n { liveHandles.append(m.insert(i &+ seed)) }
 
-            var c = CoWMap<Int>(slotCapacity: n)
+            var c = CoWMap<Int>(slotCapacity: Index<Int>.Count(UInt(n)))
             var cowHandles: [Store.Generational.Handle] = []
             cowHandles.reserveCapacity(n)
             for i in 0..<n { cowHandles.append(c.insert(i &+ seed)) }
@@ -123,7 +123,7 @@ extension Bench {
             ))
 
             // stale handles: a parallel map whose entries were all removed
-            var staleMap = MoveMap<Int>(slotCapacity: n)
+            var staleMap = MoveMap<Int>(slotCapacity: Index<Int>.Count(UInt(n)))
             var staleHandles: [Store.Generational.Handle] = []
             staleHandles.reserveCapacity(n)
             for i in 0..<n { staleHandles.append(staleMap.insert(i)) }
@@ -204,7 +204,7 @@ extension Bench {
             ))
 
             // half-holes: 2n slots, odd handles removed → n live
-            var holey = MoveMap<Int>(slotCapacity: 2 * n)
+            var holey = MoveMap<Int>(slotCapacity: Index<Int>.Count(UInt(2 * n)))
             var holeyHandles: [Store.Generational.Handle] = []
             holeyHandles.reserveCapacity(2 * n)
             for i in 0..<(2 * n) { holeyHandles.append(holey.insert(i &+ seed)) }
@@ -234,7 +234,7 @@ extension Bench {
                 perOpNs: sample(opsPerBatch: buildOps) {
                     var acc = 0
                     for r in 0..<reps {
-                        var b = MoveMap<Int>(slotCapacity: n &+ (r & 1))
+                        var b = MoveMap<Int>(slotCapacity: Index<Int>.Count(UInt(n &+ (r & 1))))
                         var last = b.insert(seed)
                         for i in 1..<n { last = b.insert(i &+ seed) }
                         acc &+= b.withElement(at: last) { $0 }
