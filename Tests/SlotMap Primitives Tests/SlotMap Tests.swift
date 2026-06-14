@@ -244,4 +244,3 @@ struct SlotMapSendableTests {
 }
 
 private func requireSendable<T: Sendable & ~Copyable>(_ value: borrowing T) {}
-

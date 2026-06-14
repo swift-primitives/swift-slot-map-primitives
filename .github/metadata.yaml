@@ -1,0 +1,8 @@
+# .github/metadata.yaml
+description: "The generational slot-map column — SlotMap<S> is a stable-handle discipline over generational storage."
+topics:
+  - primitives
+  - slot-map
+homepage: "https://swift-institute.org"
+readme:
+  family: E
