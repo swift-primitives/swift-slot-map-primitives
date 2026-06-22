@@ -19,7 +19,7 @@ let package = Package(
         .library(name: "SlotMap Primitives", targets: ["SlotMap Primitives"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/swift-primitives/swift-storage-arena-primitives.git", branch: "main"),
+        .package(url: "https://github.com/swift-primitives/swift-storage-generational-primitives.git", branch: "main"),
         .package(url: "https://github.com/swift-primitives/swift-storage-primitives.git", branch: "main"),
         .package(url: "https://github.com/swift-primitives/swift-shared-primitives.git", branch: "main"),
         .package(url: "https://github.com/swift-primitives/swift-buffer-primitives.git", branch: "main"),
@@ -35,7 +35,7 @@ let package = Package(
         .target(
             name: "SlotMap Primitive",
             dependencies: [
-                .product(name: "Storage Generational Primitives", package: "swift-storage-arena-primitives"),
+                .product(name: "Storage Generational Primitives", package: "swift-storage-generational-primitives"),
                 .product(name: "Storage Primitive", package: "swift-storage-primitives"),
                 .product(name: "Store Primitive", package: "swift-storage-primitives"),
                 .product(name: "Store Protocol Primitives", package: "swift-storage-primitives"),
@@ -52,7 +52,7 @@ let package = Package(
             name: "SlotMap Primitives",
             dependencies: [
                 "SlotMap Primitive",
-                .product(name: "Storage Generational Primitives", package: "swift-storage-arena-primitives"),
+                .product(name: "Storage Generational Primitives", package: "swift-storage-generational-primitives"),
                 .product(name: "Storage Primitive", package: "swift-storage-primitives"),
                 .product(name: "Store Primitive", package: "swift-storage-primitives"),
                 .product(name: "Store Protocol Primitives", package: "swift-storage-primitives"),
