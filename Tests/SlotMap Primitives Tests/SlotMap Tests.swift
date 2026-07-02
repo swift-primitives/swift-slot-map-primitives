@@ -14,8 +14,11 @@ import Testing
 private typealias Slots<E: ~Copyable> =
     Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>
 
-private typealias MoveMap<E: ~Copyable> = SlotMap<Slots<E>>
-private typealias CoWMap<E: ~Copyable> = SlotMap<Shared<E, Slots<E>>>
+/// The canonical front door ([DS-028]) — `Slots<E>` is exactly the front door's
+/// pinned column, so this typealias now equals `SlotMap<E>` directly.
+private typealias MoveMap<E: ~Copyable> = SlotMap<E>
+/// The `.Shared` ownership variant front door ([DS-028]).
+private typealias CoWMap<E: ~Copyable> = SlotMap<E>.Shared
 
 // The LEG-7 DEBUG carve-out is LIFTED (W5-1, 2026-06-10): the wall was root-caused as
 // catalog §A15 (the runtime cannot verify a conditional conformance with a same-type
@@ -191,7 +194,7 @@ struct SlotMapTeardownTests {
     func `the boxed move-only lane tears down via the box drain`() {
         MapProbe2.reset()
         do {
-            var m = SlotMap<Shared<MapItem2, Slots<MapItem2>>>(slotCapacity: 4)
+            var m = SlotMap<MapItem2>.Shared(slotCapacity: 4)
             _ = m.insert(MapItem2(7))
             _ = m.insert(MapItem2(8))
             let n = m.count

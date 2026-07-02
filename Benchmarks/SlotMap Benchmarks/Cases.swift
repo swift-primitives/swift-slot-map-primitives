@@ -23,14 +23,17 @@ import Ordinal_Primitives
 import Ordinal_Primitives_Standard_Library_Integration
 import Cardinal_Primitives
 
-// The ratified columns, spelled as the package's own test suite spells them.
+// The ratified columns, spelled as the package's own test suite spells them
+// (front doors per [DS-028] — `Slots<E>` is exactly the canonical front door's
+// pinned column, so `MoveMap<E>` is `SlotMap<E>` directly; `CoWMap<E>` is the
+// `.Shared` ownership variant).
 
 typealias Slots<E: ~Copyable> =
     Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>
 
-typealias MoveMap<E: ~Copyable> = SlotMap<Slots<E>>
+typealias MoveMap<E: ~Copyable> = SlotMap<E>
 
-typealias CoWMap<E: ~Copyable> = SlotMap<Shared<E, Slots<E>>>
+typealias CoWMap<E: ~Copyable> = SlotMap<E>.Shared
 
 extension Bench {
     /// The inventory rows: handle-validation overhead per access (the

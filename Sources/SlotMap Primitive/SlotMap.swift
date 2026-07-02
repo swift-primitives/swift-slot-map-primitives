@@ -12,24 +12,22 @@
 public import Storage_Primitive
 public import Storage_Generational_Primitives
 public import Store_Primitive
-public import Store_Protocol_Primitives
-public import Buffer_Protocol_Primitives
 public import Memory_Heap_Primitives
 public import Memory_Allocator_Primitive
 public import Shared_Primitive
 public import Index_Primitives
 
-// MARK: - SlotMap (the ADT tier — generic over the GENERATIONAL column)
+// MARK: - __SlotMap (the ADT tier — generic over the GENERATIONAL column)
 
 /// A slot map — the handle-keyed sparse ADT over an explicit GENERATIONAL storage
 /// COLUMN (the ratified name and home, ADT-families tranche 2026-06-10).
 ///
-/// `SlotMap` is template-true (the same bound as `Array`/`Queue`), and **copyability
-/// flows from the column** (S5):
+/// `__SlotMap` is template-true (the same bound as `__Array`/`__Queue`), and
+/// **copyability flows from the column** (S5):
 ///
 /// ```swift
-/// SlotMap<            Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<FD >>   // zero-cost MOVE-ONLY (default)
-/// SlotMap<Shared<Int, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<Int>>>  // explicit CoW value semantics
+/// __SlotMap<            Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<FD >>   // zero-cost MOVE-ONLY (default)
+/// __SlotMap<Shared<Int, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<Int>>>  // explicit CoW value semantics
 /// ```
 ///
 /// HANDLES, not positions, are the slot map's identity: `insert` mints a
@@ -44,9 +42,19 @@ public import Index_Primitives
 /// slot-map columns: `Shared`'s carrier walk reads the prefix `[0, count)` (the
 /// linear-family contract), which is unlawful over holey occupancy. A handle-set-keyed
 /// equality is its own future design.
+///
+/// ## Carrier (hoisted per [API-IMPL-009]/[PKG-NAME-006])
+///
+/// `__SlotMap` is the bound-free carrier ([DS-025]): its column parameter `S` is
+/// bound `~Copyable` **only**; every capability (observability, the handle-keyed
+/// seam ops, construction) attaches by conditional `@inlinable` extension keyed on
+/// the seams the column conforms. The PUBLIC spelling of the family is the
+/// front-door aliases — `SlotMap<E>` (canonical) and `SlotMap<E>.Shared` (CoW
+/// ownership) — declared in `SlotMap.FrontDoor.swift` / `SlotMap.Shared.swift`
+/// ([DS-028]); the hoisted name never appears in consumer signatures.
+@_documentation(visibility: public)
 @frozen
-public struct SlotMap<S: Store.`Protocol` & Buffer.`Protocol` & ~Copyable>: ~Copyable
-where S.Count == Index_Primitives.Index<S.Element>.Count {
+public struct __SlotMap<S: ~Copyable>: ~Copyable {
 
     /// The generational storage column — move-only (the default ownership column) or
     /// a `Shared` CoW column. The ADT is a thin handle discipline over it; it carries
@@ -69,14 +77,14 @@ where S.Count == Index_Primitives.Index<S.Element>.Count {
 
 // MARK: - Conditional Conformances (co-located per [COPY-FIX-004])
 
-/// The S5 chain: `SlotMap<Shared<E, B>>` is `Copyable` exactly when the ELEMENT is.
-extension SlotMap: Copyable where S: Copyable {}
+/// The S5 chain: `__SlotMap<Shared<E, B>>` is `Copyable` exactly when the ELEMENT is.
+extension __SlotMap: Copyable where S: Copyable {}
 
-extension SlotMap: Sendable where S: Sendable & ~Copyable {}
+extension __SlotMap: Sendable where S: Sendable & ~Copyable {}
 
 // MARK: - The handle vocabulary
 
-extension SlotMap where S: ~Copyable {
+extension __SlotMap where S: ~Copyable {
     /// The generational slot handle — the non-generic carrier, storable by any composer.
     public typealias Handle = Store.Generational.Handle
 }
@@ -84,7 +92,7 @@ extension SlotMap where S: ~Copyable {
 // MARK: - Column-pinned construction ([MEM-COPY-017]: the split lives in `Shared`'s
 // pinned constructor pairs; the `SlotMap` forms pick the column)
 
-extension SlotMap where S: ~Copyable {
+extension __SlotMap where S: ~Copyable {
     /// Creates an empty MOVE-ONLY slot map (the default ownership column).
     /// Typed count per the conversions discipline (Round M A3).
     @inlinable
@@ -99,8 +107,8 @@ extension SlotMap where S: ~Copyable {
     /// preserves slot indices, occupancy, and generations exactly.
     @inlinable
     public init<E>(slotCapacity: Index<E>.Count)
-    where S == Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
-        self.init(store: Shared(
+    where S == Shared_Primitive.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
+        self.init(store: Shared_Primitive.Shared(
             Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>.create(slotCapacity: slotCapacity)
         ))
     }
@@ -109,8 +117,8 @@ extension SlotMap where S: ~Copyable {
     /// `Shared` column (the boxed flavor of the move-only regime).
     @inlinable
     public init<E: ~Copyable>(slotCapacity: Index<E>.Count)
-    where S == Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
-        self.init(store: Shared(
+    where S == Shared_Primitive.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
+        self.init(store: Shared_Primitive.Shared(
             Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>.create(slotCapacity: slotCapacity)
         ))
     }

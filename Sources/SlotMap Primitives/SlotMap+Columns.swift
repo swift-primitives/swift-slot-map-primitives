@@ -27,7 +27,7 @@ public import Store_Protocol_Primitives
 // MARK: - Insert (mints a handle; the pool owns placement)
 // ============================================================================
 
-extension SlotMap where S: ~Copyable {
+extension __SlotMap where S: ~Copyable {
     /// Inserts an element; returns a fresh handle to its slot (direct column).
     ///
     /// - Precondition: the slot map is not full.
@@ -47,7 +47,7 @@ extension SlotMap where S: ~Copyable {
     @inlinable
     @discardableResult
     public mutating func insert<E: ~Copyable>(_ element: consuming E) -> Handle
-    where S == Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
+    where S == Shared_Primitive.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
         store.withUnique(consuming: element) { column, element in
             column.insert(element)
         }
@@ -58,7 +58,7 @@ extension SlotMap where S: ~Copyable {
 // MARK: - Remove (stales outstanding handles to the slot)
 // ============================================================================
 
-extension SlotMap where S: ~Copyable {
+extension __SlotMap where S: ~Copyable {
     /// Removes by handle; returns the element if the handle was live, nil if stale.
     ///
     /// - Complexity: O(1)
@@ -73,7 +73,7 @@ extension SlotMap where S: ~Copyable {
     /// - Complexity: O(1) (O(`capacity`) when a copy must be made first)
     @inlinable
     public mutating func remove<E: ~Copyable>(_ handle: Handle) -> E?
-    where S == Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
+    where S == Shared_Primitive.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
         store.withUnique { $0.remove(handle) }
     }
 
@@ -87,7 +87,7 @@ extension SlotMap where S: ~Copyable {
     /// Removes every element (`Shared` column; detaches first — siblings keep theirs).
     @inlinable
     public mutating func removeAll<E: ~Copyable>()
-    where S == Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
+    where S == Shared_Primitive.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
         store.withUnique { $0.removeAll() }
     }
 }
@@ -96,7 +96,7 @@ extension SlotMap where S: ~Copyable {
 // MARK: - Validated access
 // ============================================================================
 
-extension SlotMap where S: ~Copyable {
+extension __SlotMap where S: ~Copyable {
     /// Whether the handle is live (in range, occupied, generation matches).
     @inlinable
     public func contains<E: ~Copyable>(_ handle: Handle) -> Bool
@@ -107,7 +107,7 @@ extension SlotMap where S: ~Copyable {
     /// Whether the handle is live (`Shared` column; no gate — reads never detach).
     @inlinable
     public func contains<E: ~Copyable>(_ handle: Handle) -> Bool
-    where S == Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
+    where S == Shared_Primitive.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
         store.withColumn { $0.contains(handle) }
     }
 
@@ -129,7 +129,7 @@ extension SlotMap where S: ~Copyable {
     public func withElement<E: ~Copyable, R>(
         at handle: Handle,
         _ body: (borrowing E) -> R
-    ) -> R where S == Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
+    ) -> R where S == Shared_Primitive.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
         store.withColumn { body($0[handle]) }
     }
 
@@ -152,7 +152,7 @@ extension SlotMap where S: ~Copyable {
     public mutating func withMutableElement<E: ~Copyable, R>(
         at handle: Handle,
         _ body: (inout E) -> R
-    ) -> R where S == Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
+    ) -> R where S == Shared_Primitive.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
         store.withUnique { body(&$0[handle]) }
     }
 }
@@ -161,7 +161,7 @@ extension SlotMap where S: ~Copyable {
 // MARK: - Iteration (occupied slots, slot order)
 // ============================================================================
 
-extension SlotMap where S: ~Copyable {
+extension __SlotMap where S: ~Copyable {
     /// Calls the closure for each live element, in slot order (direct column).
     ///
     /// - Complexity: O(`capacity`)
@@ -176,7 +176,7 @@ extension SlotMap where S: ~Copyable {
     /// - Complexity: O(`capacity`)
     @inlinable
     public func forEach<E: ~Copyable>(_ body: (borrowing E) -> Void)
-    where S == Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
+    where S == Shared_Primitive.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
         store.withColumn { $0.forEach(body) }
     }
 }
@@ -185,7 +185,7 @@ extension SlotMap where S: ~Copyable {
 // MARK: - Cloning (generic on the CoW column; direct column pinned)
 // ============================================================================
 
-extension SlotMap where S: Copyable {
+extension __SlotMap where S: Copyable, S: Store.`Protocol` {
     /// Returns an independent copy — outstanding handles remain valid on BOTH values
     /// (the generation-preserving clone).
     ///
@@ -198,7 +198,7 @@ extension SlotMap where S: Copyable {
     }
 }
 
-extension SlotMap where S: ~Copyable {
+extension __SlotMap where S: ~Copyable {
     /// Returns an independent copy with the same handles live (direct column).
     ///
     /// - Complexity: O(`capacity`)

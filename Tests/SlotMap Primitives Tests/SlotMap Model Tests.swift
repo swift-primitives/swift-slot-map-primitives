@@ -35,8 +35,11 @@ import Testing
 
 private typealias Slots<E: ~Copyable> =
     Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>
-private typealias MoveMap<E: ~Copyable> = SlotMap<Slots<E>>
-private typealias CoWMap<E: ~Copyable> = SlotMap<Shared<E, Slots<E>>>
+/// The canonical front door ([DS-028]) — `Slots<E>` is exactly the front door's
+/// pinned column, so this typealias now equals `SlotMap<E>` directly.
+private typealias MoveMap<E: ~Copyable> = SlotMap<E>
+/// The `.Shared` ownership variant front door ([DS-028]).
+private typealias CoWMap<E: ~Copyable> = SlotMap<E>.Shared
 
 private typealias Handle = Store.Generational.Handle
 

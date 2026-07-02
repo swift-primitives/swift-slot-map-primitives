@@ -5,6 +5,6 @@
     @TitleHeading("Swift Primitives")
 }
 
-The generational slot-map column: `SlotMap<S>` is a stable-handle discipline over a generational storage column — handles survive mutation, and a reused slot's generation bump detects stale handles.
+The generational slot-map family: a stable-handle discipline generic over its generational storage column — handles survive mutation, and a reused slot's generation bump detects stale handles.
 
 ## Topics
