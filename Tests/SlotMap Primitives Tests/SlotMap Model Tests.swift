@@ -502,6 +502,10 @@ private struct FleetStream {
 
     mutating func drop() {
         let target = rng.below(siblings.count)
+        // `siblings` is a stdlib Array (count: Int) — no typed Cardinal surface.
+        // The math IS the projected post-drop cardinality: remove(at:) leaves
+        // exactly count − 1 siblings, recorded before mutation (mirrors fork()).
+        // swiftlint:disable:next cardinal_count_minus_one_anti_pattern
         verdict.record("drop \(target) (\(siblings.count - 1) siblings)")
         siblings.remove(at: target)
         models.remove(at: target)
