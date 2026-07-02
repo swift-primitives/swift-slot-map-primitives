@@ -9,18 +9,18 @@
 //
 // ===----------------------------------------------------------------------===//
 
+import Index_Primitives
+public import Memory_Allocator_Primitive
+public import Memory_Heap_Primitives
+public import Shared_Primitive
 // The COLUMN-PINNED handle surface. Handles cannot ride the positional seam (that is
 // the design: identity is `(index, generation)`, validated), so every op pins per
 // ratified column; the `Shared` forms cross the box via the gate-first scoped
 // accessors ([MEM-OWN-017]: inserted elements thread as consuming closure PARAMETERS).
 public import SlotMap_Primitive
-public import Storage_Primitive
 public import Storage_Generational_Primitives
+public import Storage_Primitive
 public import Store_Primitive
-public import Memory_Heap_Primitives
-public import Memory_Allocator_Primitive
-public import Shared_Primitive
-import Index_Primitives
 public import Store_Protocol_Primitives
 
 // ============================================================================
@@ -161,6 +161,9 @@ extension __SlotMap where S: ~Copyable {
 // MARK: - Iteration (occupied slots, slot order)
 // ============================================================================
 
+// swift-format-ignore: AmbiguousTrailingClosureOverload
+// Column-pinned overload pair: the `where` clauses bind S to distinct concrete
+// columns, so exactly one overload is viable per instantiation (no real ambiguity).
 extension __SlotMap where S: ~Copyable {
     /// Calls the closure for each live element, in slot order (direct column).
     ///

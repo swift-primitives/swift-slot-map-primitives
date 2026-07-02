@@ -9,10 +9,10 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Storage_Primitive
-public import Storage_Generational_Primitives
-public import Memory_Heap_Primitives
 public import Memory_Allocator_Primitive
+public import Memory_Heap_Primitives
+public import Storage_Generational_Primitives
+public import Storage_Primitive
 
 // MARK: - SlotMap<E> — the CANONICAL front door ([DS-028])
 

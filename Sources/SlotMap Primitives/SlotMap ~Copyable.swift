@@ -9,19 +9,23 @@
 //
 // ===----------------------------------------------------------------------===//
 
+public import Buffer_Protocol_Primitives
+public import Index_Primitives
+import Ordinal_Primitives_Standard_Library_Integration
 // The GENERIC slot-map surface: the count vocabulary rides the observability seam
 // ([DS-025]: `where S: Store.`Protocol` & Buffer.`Protocol`` on the capability
 // extension, restored here now that the carrier itself is bound-free); the
 // HANDLE ops pin per column (`SlotMap+Columns.swift`) — handles are not seam
 // vocabulary, by design (the W2c/W3b deferrals' point, kept).
 public import SlotMap_Primitive
-public import Buffer_Protocol_Primitives
 public import Store_Protocol_Primitives
-public import Index_Primitives
-import Ordinal_Primitives_Standard_Library_Integration
 
-extension __SlotMap where S: ~Copyable, S: Store.`Protocol` & Buffer.`Protocol`,
-    S.Count == Index_Primitives.Index<S.Element>.Count {
+extension __SlotMap
+where
+    S: ~Copyable,
+    S: Store.`Protocol` & Buffer.`Protocol`,
+    S.Count == Index_Primitives.Index<S.Element>.Count
+{
     /// The number of live (occupied) slots.
     @inlinable
     public var count: Index_Primitives.Index<S.Element>.Count {

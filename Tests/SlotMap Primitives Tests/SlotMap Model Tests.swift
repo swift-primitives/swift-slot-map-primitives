@@ -22,15 +22,15 @@
 // single-threaded deterministic. Shape constraint (arc-2 incident 2.5): each op
 // is its own small method on a ~Copyable stream struct.
 
-import SlotMap_Primitives
-import Storage_Primitive
-import Storage_Generational_Primitives
-import Store_Primitive
 import Buffer_Primitives_Test_Support
-import Memory_Heap_Primitives
-import Memory_Allocator_Primitive
-import Shared_Primitive
 import Index_Primitives
+import Memory_Allocator_Primitive
+import Memory_Heap_Primitives
+import Shared_Primitive
+import SlotMap_Primitives
+import Storage_Generational_Primitives
+import Storage_Primitive
+import Store_Primitive
 import Testing
 
 private typealias Slots<E: ~Copyable> =
@@ -497,7 +497,7 @@ private struct FleetStream {
         let source = rng.below(siblings.count)
         verdict.record("fork ←\(source) (\(siblings.count + 1) siblings)")
         siblings.append(siblings[source])  // the CoW moment: a plain value copy
-        models.append(models[source])      // the model forks with it
+        models.append(models[source])  // the model forks with it
     }
 
     mutating func drop() {

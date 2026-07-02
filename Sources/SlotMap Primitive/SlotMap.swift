@@ -9,13 +9,13 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Storage_Primitive
-public import Storage_Generational_Primitives
-public import Store_Primitive
-public import Memory_Heap_Primitives
-public import Memory_Allocator_Primitive
-public import Shared_Primitive
 public import Index_Primitives
+public import Memory_Allocator_Primitive
+public import Memory_Heap_Primitives
+public import Shared_Primitive
+public import Storage_Generational_Primitives
+public import Storage_Primitive
+public import Store_Primitive
 
 // MARK: - __SlotMap (the ADT tier — generic over the GENERATIONAL column)
 
@@ -57,7 +57,9 @@ public import Index_Primitives
 public struct __SlotMap<S: ~Copyable>: ~Copyable {
 
     /// The generational storage column — move-only (the default ownership column) or
-    /// a `Shared` CoW column. The ADT is a thin handle discipline over it; it carries
+    /// a `Shared` CoW column.
+    ///
+    /// The ADT is a thin handle discipline over it; it carries
     /// NO deinit (teardown lives in the leaf's oracle / the shared box's drain).
     @usableFromInline
     package var store: S
@@ -94,6 +96,7 @@ extension __SlotMap where S: ~Copyable {
 
 extension __SlotMap where S: ~Copyable {
     /// Creates an empty MOVE-ONLY slot map (the default ownership column).
+    ///
     /// Typed count per the conversions discipline (Round M A3).
     @inlinable
     public init<E: ~Copyable>(slotCapacity: Index<E>.Count)
@@ -108,9 +111,11 @@ extension __SlotMap where S: ~Copyable {
     @inlinable
     public init<E>(slotCapacity: Index<E>.Count)
     where S == Shared_Primitive.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
-        self.init(store: Shared_Primitive.Shared(
-            Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>.create(slotCapacity: slotCapacity)
-        ))
+        self.init(
+            store: Shared_Primitive.Shared(
+                Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>.create(slotCapacity: slotCapacity)
+            )
+        )
     }
 
     /// Creates an empty statically-unique slot map of move-only elements on the
@@ -118,8 +123,10 @@ extension __SlotMap where S: ~Copyable {
     @inlinable
     public init<E: ~Copyable>(slotCapacity: Index<E>.Count)
     where S == Shared_Primitive.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
-        self.init(store: Shared_Primitive.Shared(
-            Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>.create(slotCapacity: slotCapacity)
-        ))
+        self.init(
+            store: Shared_Primitive.Shared(
+                Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>.create(slotCapacity: slotCapacity)
+            )
+        )
     }
 }

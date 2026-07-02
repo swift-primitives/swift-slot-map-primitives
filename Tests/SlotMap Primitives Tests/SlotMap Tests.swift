@@ -1,12 +1,12 @@
-import SlotMap_Primitives
-import Storage_Primitive
-import Storage_Generational_Primitives
-import Store_Primitive
 import Buffer_Primitives_Test_Support
-import Memory_Heap_Primitives
-import Memory_Allocator_Primitive
-import Shared_Primitive
 import Index_Primitives
+import Memory_Allocator_Primitive
+import Memory_Heap_Primitives
+import Shared_Primitive
+import SlotMap_Primitives
+import Storage_Generational_Primitives
+import Storage_Primitive
+import Store_Primitive
 import Testing
 
 // The column-keyed slot-map suite: the generational column direct + Shared-wrapped.
@@ -69,7 +69,8 @@ struct SlotMapCoreTests {
         #expect(removed == 11)
         let stale: Int? = m.remove(h1)
         #expect(stale == nil)
-        let hasH1 = m.contains(h1), hasH2 = m.contains(h2)
+        let hasH1 = m.contains(h1)
+        let hasH2 = m.contains(h2)
         #expect(!hasH1)
         #expect(hasH2)
     }
@@ -80,7 +81,7 @@ struct SlotMapCoreTests {
         let h1 = m.insert(1)
         _ = m.insert(2)
         _ = m.remove(h1)
-        _ = m.insert(3)                         // reuses slot 0 (fresh generation)
+        _ = m.insert(3)  // reuses slot 0 (fresh generation)
         var seen: [Int] = []
         m.forEach { seen.append($0) }
         #expect(seen.sorted() == [2, 3])
@@ -116,15 +117,16 @@ struct SlotMapCoWTests {
     func `sibling handles survive a copy-on-write detach — live and stale alike`() {
         var a = CoWMap<Int>(slotCapacity: 4)
         let hStale = a.insert(1)
-        _ = a.remove(hStale)                    // stale before the copy
+        _ = a.remove(hStale)  // stale before the copy
         let hLive = a.insert(2)
-        let b = a                               // S5: SlotMap is Copyable because S is
-        a.insert(3)                             // withUnique detaches a; b untouched
-        let aCount = a.count, bCount = b.count
+        let b = a  // S5: SlotMap is Copyable because S is
+        a.insert(3)  // withUnique detaches a; b untouched
+        let aCount = a.count
+        let bCount = b.count
         #expect(aCount == Index<Int>.Count(UInt(2)))
         #expect(bCount == Index<Int>.Count(UInt(1)))
         let liveOnBoth = a.contains(hLive) && b.contains(hLive)
-        #expect(liveOnBoth)                     // THE generation-preserving guarantee
+        #expect(liveOnBoth)  // THE generation-preserving guarantee
         let staleOnBoth = a.contains(hStale) || b.contains(hStale)
         #expect(!staleOnBoth)
         let aV = a.withElement(at: hLive) { copy $0 }
@@ -146,7 +148,7 @@ struct SlotMapCoWTests {
         let removedFromA: Int? = a.remove(h)
         #expect(removedFromA == 50)
         let stillOnB = b.contains(h)
-        #expect(stillOnB)                       // b's box untouched by a's removal
+        #expect(stillOnB)  // b's box untouched by a's removal
     }
 
     @Test
@@ -159,7 +161,8 @@ struct SlotMapCoWTests {
         #expect(mine == 9)
         let b = a
         a.removeAll()
-        let aEmpty = a.isEmpty, bHas = b.contains(h)
+        let aEmpty = a.isEmpty
+        let bHas = b.contains(h)
         #expect(aEmpty)
         #expect(bHas)
     }
