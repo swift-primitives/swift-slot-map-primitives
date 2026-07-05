@@ -12,7 +12,7 @@
 import Index_Primitives
 public import Memory_Allocator_Primitive
 public import Memory_Heap_Primitives
-public import Shared_Primitive
+public import Ownership_Shared_Primitive
 // The COLUMN-PINNED handle surface. Handles cannot ride the positional seam (that is
 // the design: identity is `(index, generation)`, validated), so every op pins per
 // ratified column; the `Shared` forms cross the box via the gate-first scoped
@@ -47,7 +47,7 @@ extension __SlotMap where S: ~Copyable {
     @inlinable
     @discardableResult
     public mutating func insert<E: ~Copyable>(_ element: consuming E) -> Handle
-    where S == Shared_Primitive.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
+    where S == Ownership.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
         store.withUnique(consuming: element) { column, element in
             column.insert(element)
         }
@@ -73,7 +73,7 @@ extension __SlotMap where S: ~Copyable {
     /// - Complexity: O(1) (O(`capacity`) when a copy must be made first)
     @inlinable
     public mutating func remove<E: ~Copyable>(_ handle: Handle) -> E?
-    where S == Shared_Primitive.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
+    where S == Ownership.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
         store.withUnique { $0.remove(handle) }
     }
 
@@ -87,7 +87,7 @@ extension __SlotMap where S: ~Copyable {
     /// Removes every element (`Shared` column; detaches first — siblings keep theirs).
     @inlinable
     public mutating func removeAll<E: ~Copyable>()
-    where S == Shared_Primitive.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
+    where S == Ownership.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
         store.withUnique { $0.removeAll() }
     }
 }
@@ -107,7 +107,7 @@ extension __SlotMap where S: ~Copyable {
     /// Whether the handle is live (`Shared` column; no gate — reads never detach).
     @inlinable
     public func contains<E: ~Copyable>(_ handle: Handle) -> Bool
-    where S == Shared_Primitive.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
+    where S == Ownership.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
         store.withColumn { $0.contains(handle) }
     }
 
@@ -129,7 +129,7 @@ extension __SlotMap where S: ~Copyable {
     public func withElement<E: ~Copyable, R>(
         at handle: Handle,
         _ body: (borrowing E) -> R
-    ) -> R where S == Shared_Primitive.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
+    ) -> R where S == Ownership.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
         store.withColumn { body($0[handle]) }
     }
 
@@ -152,7 +152,7 @@ extension __SlotMap where S: ~Copyable {
     public mutating func withMutableElement<E: ~Copyable, R>(
         at handle: Handle,
         _ body: (inout E) -> R
-    ) -> R where S == Shared_Primitive.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
+    ) -> R where S == Ownership.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
         store.withUnique { body(&$0[handle]) }
     }
 }
@@ -179,7 +179,7 @@ extension __SlotMap where S: ~Copyable {
     /// - Complexity: O(`capacity`)
     @inlinable
     public func forEach<E: ~Copyable>(_ body: (borrowing E) -> Void)
-    where S == Shared_Primitive.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
+    where S == Ownership.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
         store.withColumn { $0.forEach(body) }
     }
 }

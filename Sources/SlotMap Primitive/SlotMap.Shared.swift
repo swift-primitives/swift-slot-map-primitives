@@ -10,7 +10,7 @@
 // ===----------------------------------------------------------------------===//
 
 public import Buffer_Protocol_Primitives
-public import Shared_Primitive
+public import Ownership_Shared_Primitive
 public import Store_Protocol_Primitives
 
 // MARK: - SlotMap<E>.Shared — the OWNERSHIP variant ([DS-028])
@@ -32,7 +32,7 @@ where
     /// generations exactly.
     ///
     /// A live consumer of this package's own test suite pulls the direct spelling
-    /// (`Shared<E, Slots<E>>`) throughout the CoW lane — this alias is the
+    /// (`Ownership.Shared<E, Slots<E>>`) throughout the CoW lane — this alias is the
     /// front-door respelling of that spelling.
-    public typealias Shared = __SlotMap<Shared_Primitive.Shared<S.Element, S>>
+    public typealias Shared = __SlotMap<Ownership.Shared<S.Element, S>>
 }

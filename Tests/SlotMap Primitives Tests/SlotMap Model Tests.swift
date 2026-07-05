@@ -26,7 +26,7 @@ import Buffer_Primitives_Test_Support
 import Index_Primitives
 import Memory_Allocator_Primitive
 import Memory_Heap_Primitives
-import Shared_Primitive
+import Ownership_Shared_Primitive
 import SlotMap_Primitives
 import Storage_Generational_Primitives
 import Storage_Primitive

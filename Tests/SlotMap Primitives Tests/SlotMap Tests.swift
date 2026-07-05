@@ -2,7 +2,7 @@ import Buffer_Primitives_Test_Support
 import Index_Primitives
 import Memory_Allocator_Primitive
 import Memory_Heap_Primitives
-import Shared_Primitive
+import Ownership_Shared_Primitive
 import SlotMap_Primitives
 import Storage_Generational_Primitives
 import Storage_Primitive
@@ -37,7 +37,7 @@ struct SlotMapColumnLawTests {
     @Test
     func `the shared generational column obeys the seam ledger laws`() {
         let violations = Seam.Ledger.violations(
-            makeEmpty: { Shared(Slots<Int>.create(slotCapacity: 4)) },
+            makeEmpty: { Ownership.Shared(Slots<Int>.create(slotCapacity: 4)) },
             element: { $0 }
         )
         #expect(violations.isEmpty, "\(violations)")

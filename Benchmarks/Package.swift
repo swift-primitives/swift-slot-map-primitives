@@ -12,7 +12,7 @@ let package = Package(
     dependencies: [
         .package(path: "../"),
         .package(url: "https://github.com/swift-primitives/swift-storage-generational-primitives.git", branch: "main"),
-        .package(url: "https://github.com/swift-primitives/swift-shared-primitives.git", branch: "main"),
+        .package(url: "https://github.com/swift-primitives/swift-ownership-shared-primitives.git", branch: "main"),
         .package(url: "https://github.com/swift-primitives/swift-storage-primitives.git", branch: "main"),
         .package(url: "https://github.com/swift-primitives/swift-buffer-primitives.git", branch: "main"),
         .package(url: "https://github.com/swift-primitives/swift-memory-heap-primitives.git", branch: "main"),
@@ -28,7 +28,7 @@ let package = Package(
             dependencies: [
                 .product(name: "SlotMap Primitives", package: "swift-slot-map-primitives"),
                 .product(name: "Storage Generational Primitives", package: "swift-storage-generational-primitives"),
-                .product(name: "Shared Primitive", package: "swift-shared-primitives"),
+                .product(name: "Ownership Shared Primitive", package: "swift-ownership-shared-primitives"),
                 .product(name: "Storage Primitive", package: "swift-storage-primitives"),
                 .product(name: "Store Primitive", package: "swift-storage-primitives"),
                 .product(name: "Buffer Primitive", package: "swift-buffer-primitives"),

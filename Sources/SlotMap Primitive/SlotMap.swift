@@ -12,7 +12,7 @@
 public import Index_Primitives
 public import Memory_Allocator_Primitive
 public import Memory_Heap_Primitives
-public import Shared_Primitive
+public import Ownership_Shared_Primitive
 public import Storage_Generational_Primitives
 public import Storage_Primitive
 public import Store_Primitive
@@ -27,7 +27,7 @@ public import Store_Primitive
 ///
 /// ```swift
 /// __SlotMap<            Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<FD >>   // zero-cost MOVE-ONLY (default)
-/// __SlotMap<Shared<Int, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<Int>>>  // explicit CoW value semantics
+/// __SlotMap<Ownership.Shared<Int, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<Int>>>  // explicit CoW value semantics
 /// ```
 ///
 /// HANDLES, not positions, are the slot map's identity: `insert` mints a
@@ -79,7 +79,7 @@ public struct __SlotMap<S: ~Copyable>: ~Copyable {
 
 // MARK: - Conditional Conformances (co-located per [COPY-FIX-004])
 
-/// The S5 chain: `__SlotMap<Shared<E, B>>` is `Copyable` exactly when the ELEMENT is.
+/// The S5 chain: `__SlotMap<Ownership.Shared<E, B>>` is `Copyable` exactly when the ELEMENT is.
 extension __SlotMap: Copyable where S: Copyable {}
 
 extension __SlotMap: Sendable where S: Sendable & ~Copyable {}
@@ -110,9 +110,9 @@ extension __SlotMap where S: ~Copyable {
     /// preserves slot indices, occupancy, and generations exactly.
     @inlinable
     public init<E>(slotCapacity: Index<E>.Count)
-    where S == Shared_Primitive.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
+    where S == Ownership.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
         self.init(
-            store: Shared_Primitive.Shared(
+            store: Ownership.Shared(
                 Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>.create(slotCapacity: slotCapacity)
             )
         )
@@ -122,9 +122,9 @@ extension __SlotMap where S: ~Copyable {
     /// `Shared` column (the boxed flavor of the move-only regime).
     @inlinable
     public init<E: ~Copyable>(slotCapacity: Index<E>.Count)
-    where S == Shared_Primitive.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
+    where S == Ownership.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
         self.init(
-            store: Shared_Primitive.Shared(
+            store: Ownership.Shared(
                 Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>.create(slotCapacity: slotCapacity)
             )
         )
