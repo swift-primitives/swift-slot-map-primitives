@@ -10,7 +10,6 @@
 // ===----------------------------------------------------------------------===//
 
 public import Buffer_Protocol_Primitives
-public import Index_Primitives
 public import Shared_Primitive
 public import Store_Protocol_Primitives
 
@@ -19,8 +18,7 @@ public import Store_Protocol_Primitives
 extension __SlotMap
 where
     S: ~Copyable,
-    S: Store.`Protocol` & Buffer.`Protocol`,
-    S.Count == Index_Primitives.Index<S.Element>.Count
+    S: Store.`Protocol` & Buffer.`Protocol`
 {
 
     /// The explicit CoW (value-semantic) slot map: the current column boxed behind

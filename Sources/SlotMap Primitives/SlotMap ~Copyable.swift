@@ -23,8 +23,7 @@ public import Store_Protocol_Primitives
 extension __SlotMap
 where
     S: ~Copyable,
-    S: Store.`Protocol` & Buffer.`Protocol`,
-    S.Count == Index_Primitives.Index<S.Element>.Count
+    S: Store.`Protocol` & Buffer.`Protocol`
 {
     /// The number of live (occupied) slots.
     @inlinable
