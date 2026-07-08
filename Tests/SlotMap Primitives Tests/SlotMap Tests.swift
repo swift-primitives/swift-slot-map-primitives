@@ -32,7 +32,7 @@ private typealias CoWMap<E: ~Copyable> = SlotMap<E>.Shared
 // column's law-run lives in the arena suite; this is the family's NEW composite)
 
 @Suite
-struct SlotMapColumnLawTests {
+struct `Slot Map Column Law Tests` {
 
     @Test
     func `the shared generational column obeys the seam ledger laws`() {
@@ -47,7 +47,7 @@ struct SlotMapColumnLawTests {
 // MARK: - The direct (move-only) lane
 
 @Suite(.serialized)
-struct SlotMapCoreTests {
+struct `Slot Map Core Tests` {
 
     @Test
     func `insert, contains, withElement, remove, stale handles, counts`() {
@@ -111,7 +111,7 @@ struct SlotMapCoreTests {
 // MARK: - The CoW lane (the generation-preserving clone through the box)
 
 @Suite(.serialized)
-struct SlotMapCoWTests {
+struct `Slot Map CoW Tests` {
 
     @Test
     func `sibling handles survive a copy-on-write detach — live and stale alike`() {
@@ -171,7 +171,7 @@ struct SlotMapCoWTests {
 // MARK: - Teardown (the leaf oracle + the box drain; release leg = the -O regime)
 
 @Suite(.serialized)
-struct SlotMapTeardownTests {
+struct `Slot Map Teardown Tests` {
 
     @Test
     func `the direct lane tears down live slots via the leaf oracle`() {
@@ -214,7 +214,9 @@ private struct MapItem: ~Copyable {
     deinit { MapProbe.recordDestroy(id) }
 }
 
-private enum MapProbe {
+private enum MapProbe {}
+
+extension MapProbe {
     nonisolated(unsafe) static var _destroyed: [Int] = []
     static func reset() { unsafe _destroyed = [] }
     static func recordDestroy(_ id: Int) { unsafe _destroyed.append(id) }
@@ -227,7 +229,9 @@ private struct MapItem2: ~Copyable {
     deinit { MapProbe2.recordDestroy(id) }
 }
 
-private enum MapProbe2 {
+private enum MapProbe2 {}
+
+extension MapProbe2 {
     nonisolated(unsafe) static var _destroyed: [Int] = []
     static func reset() { unsafe _destroyed = [] }
     static func recordDestroy(_ id: Int) { unsafe _destroyed.append(id) }
@@ -237,7 +241,7 @@ private enum MapProbe2 {
 // MARK: - Sendable smoke
 
 @Suite
-struct SlotMapSendableTests {
+struct `Slot Map Sendable Tests` {
 
     @Test
     func `sendable composes through both columns`() {

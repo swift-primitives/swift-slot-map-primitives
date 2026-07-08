@@ -46,18 +46,20 @@ private typealias Handle = Store.Generational.Handle
 // MARK: - The reference model (the ledger as plain value state; forked by copy)
 
 private struct Reference {
-    struct Slot {
-        var occupied = false
-        var generation = 0
-        var id: Int? = nil
-    }
-
     var slots: [Slot]
     var live: [(handle: Handle, id: Int)] = []
     var stale: [(handle: Handle, id: Int)] = []
 
     init(capacity: Int) {
         self.slots = Swift.Array(repeating: Slot(), count: capacity)
+    }
+}
+
+extension Reference {
+    struct Slot {
+        var occupied = false
+        var generation = 0
+        var id: Int? = nil
     }
 
     var capacity: Int { slots.count }
@@ -134,7 +136,9 @@ private struct DirectStream: ~Copyable {
         self.verdict = Model.Verdict(seed: seed)
         self.census = census
     }
+}
 
+extension DirectStream {
     mutating func insertNew() {
         let id = nextID
         nextID += 1
@@ -331,7 +335,9 @@ private struct CloneStream: ~Copyable {
         self.rng = rng
         self.verdict = Model.Verdict(seed: seed)
     }
+}
 
+extension CloneStream {
     mutating func insertNew() {
         let id = nextID
         nextID += 1
@@ -492,7 +498,9 @@ private struct FleetStream {
         self.rng = rng
         self.verdict = Model.Verdict(seed: seed)
     }
+}
 
+extension FleetStream {
     mutating func fork() {
         let source = rng.below(siblings.count)
         verdict.record("fork ←\(source) (\(siblings.count + 1) siblings)")
