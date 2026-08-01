@@ -14,7 +14,6 @@ import Testing
 private typealias Slots<E: ~Copyable> =
     Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>
 
-
 // The LEG-7 DEBUG carve-out is LIFTED (W5-1, 2026-06-10): the wall was root-caused as
 // catalog §A15 (the runtime cannot verify a conditional conformance with a same-type
 // ~Copyable RHS) and RETIRED by the Memory.Pooling re-bound — Storage.Generational's
@@ -31,7 +30,6 @@ struct `Slot Map Column Law Tests` {
     @Suite struct Unit {}
     @Suite struct `Edge Case` {}
     @Suite struct Integration {}
-
 
     @Test
     func `the shared generational column obeys the seam ledger laws`() {
@@ -50,7 +48,6 @@ struct `Slot Map Core Tests` {
     @Suite struct Unit {}
     @Suite struct `Edge Case` {}
     @Suite struct Integration {}
-
 
     @Test
     func `insert, contains, withElement, remove, stale handles, counts`() {
@@ -119,7 +116,6 @@ struct `Slot Map CoW Tests` {
     @Suite struct `Edge Case` {}
     @Suite struct Integration {}
 
-
     @Test
     func `sibling handles survive a copy-on-write detach — live and stale alike`() {
         var a = SlotMap<Int>.Shared(slotCapacity: 4)
@@ -182,7 +178,6 @@ struct `Slot Map Teardown Tests` {
     @Suite struct Unit {}
     @Suite struct `Edge Case` {}
     @Suite struct Integration {}
-
 
     @Test
     func `the direct lane tears down live slots via the leaf oracle`() {
@@ -262,7 +257,6 @@ struct `Slot Map Sendable Tests` {
     @Suite struct Unit {}
     @Suite struct `Edge Case` {}
     @Suite struct Integration {}
-
 
     @Test
     func `sendable composes through both columns`() {

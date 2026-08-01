@@ -511,6 +511,7 @@ extension FleetStream {
         // swift-linter:disable:next count minus one
         // REASON: stdlib Array.count is Int, not Cardinal — no typed subtract
         // surface exists here; this is a log-message projection, not indexing.
+        // swiftlint:disable:next cardinal_count_minus_one_anti_pattern  // reason: stdlib Array.count is Int; log-message projection, not indexing.
         verdict.record("drop \(target) (\(siblings.count - 1) siblings)")
         siblings.remove(at: target)
         models.remove(at: target)
