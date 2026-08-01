@@ -14,11 +14,6 @@ import Testing
 private typealias Slots<E: ~Copyable> =
     Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>
 
-/// The canonical front door ([DS-028]) — `Slots<E>` is exactly the front door's
-/// pinned column, so this typealias now equals `SlotMap<E>` directly.
-private typealias MoveMap<E: ~Copyable> = SlotMap<E>
-/// The `.Shared` ownership variant front door ([DS-028]).
-private typealias CoWMap<E: ~Copyable> = SlotMap<E>.Shared
 
 // The LEG-7 DEBUG carve-out is LIFTED (W5-1, 2026-06-10): the wall was root-caused as
 // catalog §A15 (the runtime cannot verify a conditional conformance with a same-type
@@ -33,6 +28,10 @@ private typealias CoWMap<E: ~Copyable> = SlotMap<E>.Shared
 
 @Suite
 struct `Slot Map Column Law Tests` {
+    @Suite struct Unit {}
+    @Suite struct `Edge Case` {}
+    @Suite struct Integration {}
+
 
     @Test
     func `the shared generational column obeys the seam ledger laws`() {
@@ -48,10 +47,14 @@ struct `Slot Map Column Law Tests` {
 
 @Suite(.serialized)
 struct `Slot Map Core Tests` {
+    @Suite struct Unit {}
+    @Suite struct `Edge Case` {}
+    @Suite struct Integration {}
+
 
     @Test
     func `insert, contains, withElement, remove, stale handles, counts`() {
-        var m = MoveMap<Int>(slotCapacity: 4)
+        var m = SlotMap<Int>(slotCapacity: 4)
         let isEmpty = m.isEmpty
         #expect(isEmpty)
         let h1 = m.insert(10)
@@ -77,7 +80,7 @@ struct `Slot Map Core Tests` {
 
     @Test
     func `forEach walks occupied slots; removeAll stales everything`() {
-        var m = MoveMap<Int>(slotCapacity: 4)
+        var m = SlotMap<Int>(slotCapacity: 4)
         let h1 = m.insert(1)
         _ = m.insert(2)
         _ = m.remove(h1)
@@ -95,7 +98,7 @@ struct `Slot Map Core Tests` {
 
     @Test
     func `pinned clone keeps handles live on both values`() {
-        var m = MoveMap<Int>(slotCapacity: 4)
+        var m = SlotMap<Int>(slotCapacity: 4)
         let h = m.insert(7)
         var c = m.clone()
         let onBoth = m.contains(h) && c.contains(h)
@@ -112,10 +115,14 @@ struct `Slot Map Core Tests` {
 
 @Suite(.serialized)
 struct `Slot Map CoW Tests` {
+    @Suite struct Unit {}
+    @Suite struct `Edge Case` {}
+    @Suite struct Integration {}
+
 
     @Test
     func `sibling handles survive a copy-on-write detach — live and stale alike`() {
-        var a = CoWMap<Int>(slotCapacity: 4)
+        var a = SlotMap<Int>.Shared(slotCapacity: 4)
         let hStale = a.insert(1)
         _ = a.remove(hStale)  // stale before the copy
         let hLive = a.insert(2)
@@ -137,7 +144,7 @@ struct `Slot Map CoW Tests` {
 
     @Test
     func `mutation through a handle detaches; the sibling keeps the old element`() {
-        var a = CoWMap<Int>(slotCapacity: 2)
+        var a = SlotMap<Int>.Shared(slotCapacity: 2)
         let h = a.insert(5)
         let b = a
         a.withMutableElement(at: h) { $0 = 50 }
@@ -153,7 +160,7 @@ struct `Slot Map CoW Tests` {
 
     @Test
     func `generic clone always detaches; removeAll detaches`() {
-        var a = CoWMap<Int>(slotCapacity: 2)
+        var a = SlotMap<Int>.Shared(slotCapacity: 2)
         let h = a.insert(9)
         var c = a.clone()
         c.withMutableElement(at: h) { $0 = 90 }
@@ -172,12 +179,16 @@ struct `Slot Map CoW Tests` {
 
 @Suite(.serialized)
 struct `Slot Map Teardown Tests` {
+    @Suite struct Unit {}
+    @Suite struct `Edge Case` {}
+    @Suite struct Integration {}
+
 
     @Test
     func `the direct lane tears down live slots via the leaf oracle`() {
         MapProbe.reset()
         do {
-            var m = MoveMap<MapItem>(slotCapacity: 4)
+            var m = SlotMap<MapItem>(slotCapacity: 4)
             _ = m.insert(MapItem(1))
             let h2 = m.insert(MapItem(2))
             if let removed: MapItem = m.remove(h2) {
@@ -186,10 +197,10 @@ struct `Slot Map Teardown Tests` {
             } else {
                 Issue.record("expected the removed element")
             }
-            let mid = MapProbe.destroyedSorted
+            let mid = MapProbe.sorted
             #expect(mid == [2])
         }
-        let all = MapProbe.destroyedSorted
+        let all = MapProbe.sorted
         #expect(all == [1, 2])
     }
 
@@ -203,7 +214,7 @@ struct `Slot Map Teardown Tests` {
             let n = m.count
             #expect(n == Index<MapItem2>.Count(UInt(2)))
         }
-        let all = MapProbe2.destroyedSorted
+        let all = MapProbe2.sorted
         #expect(all == [7, 8])
     }
 }
@@ -211,43 +222,53 @@ struct `Slot Map Teardown Tests` {
 private struct MapItem: ~Copyable {
     let id: Int
     init(_ id: Int) { self.id = id }
-    deinit { MapProbe.recordDestroy(id) }
+    deinit { MapProbe.record(id) }
 }
 
 private enum MapProbe {}
 
 extension MapProbe {
+    // SAFETY: allocated once at first access, mutated only through `reset()` /
+    // `record(_:)` on the single-threaded test-runner path — this is a
+    // test-fixture deinit tally, never touched concurrently.
     nonisolated(unsafe) static var _destroyed: [Int] = []
     static func reset() { unsafe _destroyed = [] }
-    static func recordDestroy(_ id: Int) { unsafe _destroyed.append(id) }
-    static var destroyedSorted: [Int] { unsafe _destroyed.sorted() }
+    static func record(_ id: Int) { unsafe _destroyed.append(id) }
+    static var sorted: [Int] { unsafe _destroyed.sorted() }
 }
 
 private struct MapItem2: ~Copyable {
     let id: Int
     init(_ id: Int) { self.id = id }
-    deinit { MapProbe2.recordDestroy(id) }
+    deinit { MapProbe2.record(id) }
 }
 
 private enum MapProbe2 {}
 
 extension MapProbe2 {
+    // SAFETY: allocated once at first access, mutated only through `reset()` /
+    // `record(_:)` on the single-threaded test-runner path — this is a
+    // test-fixture deinit tally, never touched concurrently.
     nonisolated(unsafe) static var _destroyed: [Int] = []
     static func reset() { unsafe _destroyed = [] }
-    static func recordDestroy(_ id: Int) { unsafe _destroyed.append(id) }
-    static var destroyedSorted: [Int] { unsafe _destroyed.sorted() }
+    static func record(_ id: Int) { unsafe _destroyed.append(id) }
+    static var sorted: [Int] { unsafe _destroyed.sorted() }
 }
 
 // MARK: - Sendable smoke
 
 @Suite
 struct `Slot Map Sendable Tests` {
+    @Suite struct Unit {}
+    @Suite struct `Edge Case` {}
+    @Suite struct Integration {}
+
 
     @Test
     func `sendable composes through both columns`() {
-        let a = MoveMap<Int>(slotCapacity: 1)
+        let a = SlotMap<Int>(slotCapacity: 1)
         requireSendable(a)
-        let b = CoWMap<Int>(slotCapacity: 1)
+        let b = SlotMap<Int>.Shared(slotCapacity: 1)
         requireSendable(b)
         #expect(Bool(true))
     }

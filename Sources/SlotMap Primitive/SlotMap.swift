@@ -69,7 +69,9 @@ public struct __SlotMap<S: ~Copyable>: ~Copyable {
     public init(store: consuming S) {
         self.store = store
     }
+}
 
+extension __SlotMap where S: ~Copyable {
     /// Consumes the slot map, yielding its storage column.
     @inlinable
     public consuming func take() -> S {

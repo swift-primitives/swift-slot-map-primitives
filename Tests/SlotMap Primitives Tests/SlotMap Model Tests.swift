@@ -35,11 +35,6 @@ import Testing
 
 private typealias Slots<E: ~Copyable> =
     Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>
-/// The canonical front door ([DS-028]) — `Slots<E>` is exactly the front door's
-/// pinned column, so this typealias now equals `SlotMap<E>` directly.
-private typealias MoveMap<E: ~Copyable> = SlotMap<E>
-/// The `.Shared` ownership variant front door ([DS-028]).
-private typealias CoWMap<E: ~Copyable> = SlotMap<E>.Shared
 
 private typealias Handle = Store.Generational.Handle
 
@@ -119,7 +114,7 @@ extension Reference {
 // census + the tracked element are the hoisted Model fixtures — W3-0)
 
 private struct DirectStream: ~Copyable {
-    var map: MoveMap<Model.Element.Tracked>
+    var map: SlotMap<Model.Element.Tracked>
     var model: Reference
     var rng: Model.Random
     var verdict: Model.Verdict
@@ -130,7 +125,7 @@ private struct DirectStream: ~Copyable {
     init(seed: UInt64, census: Model.Census) {
         var rng = Model.Random(seed: seed)
         let capacity = 2 + rng.below(11)
-        self.map = MoveMap<Model.Element.Tracked>(slotCapacity: Index<Model.Element.Tracked>.Count(UInt(capacity)))
+        self.map = SlotMap<Model.Element.Tracked>(slotCapacity: Index<Model.Element.Tracked>.Count(UInt(capacity)))
         self.model = Reference(capacity: capacity)
         self.rng = rng
         self.verdict = Model.Verdict(seed: seed)
@@ -321,7 +316,7 @@ private func runDirectStream(seed: UInt64) -> Model.Verdict {
 // MARK: - The direct trivial lane (+ the clone fork — clone forks the model too)
 
 private struct CloneStream: ~Copyable {
-    var map: MoveMap<Int>
+    var map: SlotMap<Int>
     var model: Reference
     var rng: Model.Random
     var verdict: Model.Verdict
@@ -330,7 +325,7 @@ private struct CloneStream: ~Copyable {
     init(seed: UInt64) {
         var rng = Model.Random(seed: seed)
         let capacity = 2 + rng.below(11)
-        self.map = MoveMap<Int>(slotCapacity: Index<Int>.Count(UInt(capacity)))
+        self.map = SlotMap<Int>(slotCapacity: Index<Int>.Count(UInt(capacity)))
         self.model = Reference(capacity: capacity)
         self.rng = rng
         self.verdict = Model.Verdict(seed: seed)
@@ -484,7 +479,7 @@ private func runCloneStream(seed: UInt64) -> Model.Verdict {
 // MARK: - The Shared (CoW) lane: the sibling fleet, each against its own fork
 
 private struct FleetStream {
-    var siblings: [CoWMap<Int>]
+    var siblings: [SlotMap<Int>.Shared]
     var models: [Reference]
     var rng: Model.Random
     var verdict: Model.Verdict
@@ -493,7 +488,7 @@ private struct FleetStream {
     init(seed: UInt64) {
         var rng = Model.Random(seed: seed)
         let capacity = 4 + rng.below(9)
-        self.siblings = [CoWMap<Int>(slotCapacity: Index<Int>.Count(UInt(capacity)))]
+        self.siblings = [SlotMap<Int>.Shared(slotCapacity: Index<Int>.Count(UInt(capacity)))]
         self.models = [Reference(capacity: capacity)]
         self.rng = rng
         self.verdict = Model.Verdict(seed: seed)
@@ -513,7 +508,9 @@ extension FleetStream {
         // `siblings` is a stdlib Array (count: Int) — no typed Cardinal surface.
         // The math IS the projected post-drop cardinality: remove(at:) leaves
         // exactly count − 1 siblings, recorded before mutation (mirrors fork()).
-        // swiftlint:disable:next cardinal_count_minus_one_anti_pattern
+        // swift-linter:disable:next count minus one
+        // REASON: stdlib Array.count is Int, not Cardinal — no typed subtract
+        // surface exists here; this is a log-message projection, not indexing.
         verdict.record("drop \(target) (\(siblings.count - 1) siblings)")
         siblings.remove(at: target)
         models.remove(at: target)
@@ -703,7 +700,7 @@ extension `SlotMap Model`.Integration {
 extension `SlotMap Model`.Unit {
     @Test
     func `typed counts cohere: count + freeCapacity == capacity throughout`() {
-        var map = MoveMap<Int>(slotCapacity: 4)
+        var map = SlotMap<Int>(slotCapacity: 4)
         let h1 = map.insert(1)
         _ = map.insert(2)
         let count = map.count
@@ -721,7 +718,7 @@ extension `SlotMap Model`.Unit {
 extension `SlotMap Model`.`Edge Case` {
     @Test
     func `a sibling forked while a handle was stale keeps rejecting it after detach`() {
-        var first = CoWMap<Int>(slotCapacity: 2)
+        var first = SlotMap<Int>.Shared(slotCapacity: 2)
         let handle = first.insert(7)
         let removed: Int? = first.remove(handle)
         #expect(removed == 7)
@@ -741,7 +738,7 @@ extension `SlotMap Model`.`Edge Case` {
 
     @Test
     func `removeAll on one sibling leaves the other's elements and handles intact`() {
-        var first = CoWMap<Int>(slotCapacity: 3)
+        var first = SlotMap<Int>.Shared(slotCapacity: 3)
         let a = first.insert(1)
         let b = first.insert(2)
         var second = first
