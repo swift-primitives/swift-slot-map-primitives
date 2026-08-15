@@ -129,7 +129,8 @@ extension __SlotMap where S: ~Copyable {
     public func withElement<E: ~Copyable, R>(
         at handle: Handle,
         _ body: (borrowing E) -> R
-    ) -> R where S == Ownership.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
+    ) -> R
+    where S == Ownership.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
         store.withColumn { body($0[handle]) }
     }
 
@@ -152,7 +153,8 @@ extension __SlotMap where S: ~Copyable {
     public mutating func withMutableElement<E: ~Copyable, R>(
         at handle: Handle,
         _ body: (inout E) -> R
-    ) -> R where S == Ownership.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
+    ) -> R
+    where S == Ownership.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
         store.withUnique { body(&$0[handle]) }
     }
 }
