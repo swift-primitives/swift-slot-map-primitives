@@ -71,7 +71,9 @@ extension Reference {
             return ["minted handle index \(handle.index) outside capacity \(slots.count)"]
         }
         if slots[handle.index].occupied {
-            findings.append("minted handle for slot \(handle.index), which the ledger holds OCCUPIED")
+            findings.append(
+                "minted handle for slot \(handle.index), which the ledger holds OCCUPIED"
+            )
         }
         if slots[handle.index].generation != handle.generation {
             findings.append(
@@ -125,7 +127,9 @@ private struct DirectStream: ~Copyable {
     init(seed: UInt64, census: Model.Census) {
         var rng = Model.Random(seed: seed)
         let capacity = 2 + rng.below(11)
-        self.map = SlotMap<Model.Element.Tracked>(slotCapacity: Index<Model.Element.Tracked>.Count(UInt(capacity)))
+        self.map = SlotMap<Model.Element.Tracked>(
+            slotCapacity: Index<Model.Element.Tracked>.Count(UInt(capacity))
+        )
         self.model = Reference(capacity: capacity)
         self.rng = rng
         self.verdict = Model.Verdict(seed: seed)
@@ -168,7 +172,9 @@ extension DirectStream {
     mutating func readLive() {
         let entry = model.live[rng.below(model.live.count)]
         verdict.record("read id=\(entry.id)")
-        let id = map.withElement(at: entry.handle) { (element: borrowing Model.Element.Tracked) in element.id }
+        let id = map.withElement(at: entry.handle) { (element: borrowing Model.Element.Tracked) in
+            element.id
+        }
         if id != entry.id {
             verdict.diverged(["withElement at live handle: \(id), model \(entry.id)"])
         }
@@ -233,24 +239,36 @@ extension DirectStream {
         if map.capacity != Index<Model.Element.Tracked>.Count(UInt(model.capacity)) {
             findings.append("capacity: map \(map.capacity), model \(model.capacity)")
         }
-        if map.freeCapacity != Index<Model.Element.Tracked>.Count(UInt(model.capacity - model.liveCount)) {
-            findings.append("freeCapacity: map \(map.freeCapacity), model \(model.capacity - model.liveCount)")
+        if map.freeCapacity
+            != Index<Model.Element.Tracked>.Count(UInt(model.capacity - model.liveCount))
+        {
+            findings.append(
+                "freeCapacity: map \(map.freeCapacity), model \(model.capacity - model.liveCount)"
+            )
         }
         for entry in model.live {
             if !map.contains(entry.handle) {
-                findings.append("α: live handle @\(entry.handle.index)g\(entry.handle.generation) rejected")
+                findings.append(
+                    "α: live handle @\(entry.handle.index)g\(entry.handle.generation) rejected"
+                )
             } else {
-                let id = map.withElement(at: entry.handle) { (element: borrowing Model.Element.Tracked) in element.id }
+                let id = map.withElement(at: entry.handle) {
+                    (element: borrowing Model.Element.Tracked) in element.id
+                }
                 if id != entry.id {
                     findings.append("live handle resolves \(id), model \(entry.id)")
                 }
             }
         }
         for entry in model.stale where map.contains(entry.handle) {
-            findings.append("β: stale handle @\(entry.handle.index)g\(entry.handle.generation) re-validated")
+            findings.append(
+                "β: stale handle @\(entry.handle.index)g\(entry.handle.generation) re-validated"
+            )
         }
         if census.died.count != expectedDeaths {
-            findings.append("teardown drift: \(census.died.count) deaths, expected \(expectedDeaths)")
+            findings.append(
+                "teardown drift: \(census.died.count) deaths, expected \(expectedDeaths)"
+            )
         }
         return findings
     }
@@ -373,7 +391,9 @@ extension CloneStream {
 
         for entry in forked.live {
             if !copy.contains(entry.handle) {
-                verdict.diverged(["clone dropped live handle @\(entry.handle.index)g\(entry.handle.generation)"])
+                verdict.diverged([
+                    "clone dropped live handle @\(entry.handle.index)g\(entry.handle.generation)"
+                ])
             }
         }
         for entry in forked.stale where copy.contains(entry.handle) {
@@ -424,9 +444,13 @@ extension CloneStream {
         }
         for entry in model.live {
             if !map.contains(entry.handle) {
-                findings.append("α: live handle @\(entry.handle.index)g\(entry.handle.generation) rejected")
+                findings.append(
+                    "α: live handle @\(entry.handle.index)g\(entry.handle.generation) rejected"
+                )
             } else {
-                let id = map.withElement(at: entry.handle) { (element: borrowing Int) in copy element }
+                let id = map.withElement(at: entry.handle) { (element: borrowing Int) in
+                    copy element
+                }
                 if id != entry.id {
                     findings.append("live handle resolves \(id), model \(entry.id)")
                 }
@@ -511,8 +535,6 @@ extension FleetStream {
         // swift-linter:disable:next count minus one
         // REASON: stdlib Array.count is Int, not Cardinal — no typed subtract
         // surface exists here; this is a log-message projection, not indexing.
-        // reason: stdlib Array.count is Int; log-message projection, not indexing.
-        // swiftlint:disable:next cardinal_count_minus_one_anti_pattern
         verdict.record("drop \(target) (\(siblings.count - 1) siblings)")
         siblings.remove(at: target)
         models.remove(at: target)
@@ -556,7 +578,9 @@ extension FleetStream {
     mutating func readLive(on target: Int) {
         let entry = models[target].live[rng.below(models[target].live.count)]
         verdict.record("read[\(target)] id=\(entry.id)")
-        let id = siblings[target].withElement(at: entry.handle) { (element: borrowing Int) in copy element }
+        let id = siblings[target].withElement(at: entry.handle) { (element: borrowing Int) in
+            copy element
+        }
         if id != entry.id {
             verdict.diverged(["withElement on sibling \(target): \(id), model \(entry.id)"])
         }
@@ -591,20 +615,30 @@ extension FleetStream {
         var findings: [String] = []
         for (index, model) in models.enumerated() {
             if siblings[index].count != Index<Int>.Count(UInt(model.liveCount)) {
-                findings.append("sibling \(index) count \(siblings[index].count), model \(model.liveCount)")
+                findings.append(
+                    "sibling \(index) count \(siblings[index].count), model \(model.liveCount)"
+                )
             }
             for entry in model.live {
                 if !siblings[index].contains(entry.handle) {
-                    findings.append("α: sibling \(index) rejected live @\(entry.handle.index)g\(entry.handle.generation)")
+                    findings.append(
+                        "α: sibling \(index) rejected live @\(entry.handle.index)g\(entry.handle.generation)"
+                    )
                 } else {
-                    let id = siblings[index].withElement(at: entry.handle) { (element: borrowing Int) in copy element }
+                    let id = siblings[index].withElement(at: entry.handle) {
+                        (element: borrowing Int) in copy element
+                    }
                     if id != entry.id {
-                        findings.append("sibling \(index) resolves \(id) at @\(entry.handle.index), model \(entry.id)")
+                        findings.append(
+                            "sibling \(index) resolves \(id) at @\(entry.handle.index), model \(entry.id)"
+                        )
                     }
                 }
             }
             for entry in model.stale where siblings[index].contains(entry.handle) {
-                findings.append("β: sibling \(index) re-validated stale @\(entry.handle.index)g\(entry.handle.generation)")
+                findings.append(
+                    "β: sibling \(index) re-validated stale @\(entry.handle.index)g\(entry.handle.generation)"
+                )
             }
         }
         return findings

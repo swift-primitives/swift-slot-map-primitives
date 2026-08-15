@@ -115,7 +115,9 @@ extension __SlotMap where S: ~Copyable {
     where S == Ownership.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
         self.init(
             store: Ownership.Shared(
-                Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>.create(slotCapacity: slotCapacity)
+                Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>.create(
+                    slotCapacity: slotCapacity
+                )
             )
         )
     }
@@ -127,7 +129,9 @@ extension __SlotMap where S: ~Copyable {
     where S == Ownership.Shared<E, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>> {
         self.init(
             store: Ownership.Shared(
-                Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>.create(slotCapacity: slotCapacity)
+                Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>.create(
+                    slotCapacity: slotCapacity
+                )
             )
         )
     }
