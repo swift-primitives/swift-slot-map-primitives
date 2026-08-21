@@ -12,10 +12,9 @@ let package = Package(
         .visionOS(.v27),
     ],
     products: [
-        // MARK: - Namespace + base type
+
         .library(name: "SlotMap Primitive", targets: ["SlotMap Primitive"]),
 
-        // MARK: - Umbrella (ops module; [MOD-005])
         .library(name: "SlotMap Primitives", targets: ["SlotMap Primitives"]),
     ],
     dependencies: [
@@ -58,7 +57,6 @@ let package = Package(
     ],
     targets: [
 
-        // MARK: - Namespace + base type (struct SlotMap<S>; the handle-keyed sparse ADT)
         .target(
             name: "SlotMap Primitive",
             dependencies: [
@@ -83,7 +81,6 @@ let package = Package(
             ]
         ),
 
-        // MARK: - Base ops + Umbrella ([MOD-005]: re-exports the in-package type module only)
         .target(
             name: "SlotMap Primitives",
             dependencies: [
@@ -109,7 +106,6 @@ let package = Package(
             ]
         ),
 
-        // MARK: - Tests
         .testTarget(
             name: "SlotMap Primitives Tests",
             dependencies: [

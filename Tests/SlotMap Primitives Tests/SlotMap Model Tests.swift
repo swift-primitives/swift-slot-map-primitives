@@ -1,27 +1,3 @@
-// ===----------------------------------------------------------------------===//
-//
-// This source file is part of the swift-primitives open source project
-//
-// Copyright (c) 2024-2026 Coen ten Thije Boonkkamp and the swift-primitives project authors
-// Licensed under Apache License v2.0
-//
-// See LICENSE for license information
-//
-// ===----------------------------------------------------------------------===//
-
-// The W2 slot-map model suite (arc-2): the ADT's public surface rides the same
-// seeded streams as the ledger underneath — handle laws (generation continuity,
-// α/β), typed counts, removeAll, forEach order — on BOTH columns. The Shared
-// lane runs a sibling FLEET: forks copy the reference model with the value, so
-// every sibling audits against its own fork after every op; a copy-on-write
-// leak (a mutation bleeding across siblings) or a handle staled by a detach
-// fails that sibling's audit immediately. Teardown exactness via the census on
-// the move-only direct lane.
-//
-// Determinism: generation reads MODEL state only; pool hand-outs are
-// single-threaded deterministic. Shape constraint (arc-2 incident 2.5): each op
-// is its own small method on a ~Copyable stream struct.
-
 import Buffer_Primitives_Test_Support
 import Index_Primitives
 import Memory_Allocator_Primitive
@@ -37,8 +13,6 @@ private typealias Slots<E: ~Copyable> =
     Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>
 
 private typealias Handle = Store.Generational.Handle
-
-// MARK: - The reference model (the ledger as plain value state; forked by copy)
 
 private struct Reference {
     var slots: [Slot]
@@ -60,7 +34,6 @@ extension Reference {
     var capacity: Int { slots.count }
     var liveCount: Int { live.count }
 
-    /// Occupied slots ascending — the `forEach` contract's expected id sequence.
     var idsInSlotOrder: [Int] {
         slots.compactMap { $0.occupied ? $0.id : nil }
     }
@@ -111,9 +84,6 @@ extension Reference {
         }
     }
 }
-
-// MARK: - The direct move-only lane (handle laws + teardown exactness; the
-// census + the tracked element are the hoisted Model fixtures — W3-0)
 
 private struct DirectStream: ~Copyable {
     var map: SlotMap<Model.Element.Tracked>
@@ -190,7 +160,7 @@ extension DirectStream {
         map.withMutableElement(at: entry.handle) { (element: inout Model.Element.Tracked) in
             element = Model.Element.Tracked(id: id, census: census)
         }
-        expectedDeaths += 1  // the displaced element
+        expectedDeaths += 1
         model.live[position].id = id
         model.slots[entry.handle.index].id = id
         if !map.contains(entry.handle) {
@@ -275,7 +245,7 @@ extension DirectStream {
 
     mutating func step() {
         var branch = rng.below(100)
-        // Redirect order: stale-ops → reads; empty → insert; full-insert → remove LAST.
+
         if model.stale.isEmpty, branch >= 50, branch < 56 { branch = 62 }
         if model.stale.isEmpty, branch >= 80, branch < 86 { branch = 62 }
         if model.live.isEmpty, branch >= 28, branch < 92 { branch = 0 }
@@ -315,7 +285,7 @@ private func runDirectStream(seed: UInt64) -> Model.Verdict {
     let census = Model.Census()
     var stream = DirectStream(seed: seed, census: census)
     stream.run()
-    let (finished, expectedDeaths, liveAtEnd) = stream.finish()  // the map dies here
+    let (finished, expectedDeaths, liveAtEnd) = stream.finish()
     var verdict = finished
 
     if census.died.count != expectedDeaths + liveAtEnd {
@@ -330,8 +300,6 @@ private func runDirectStream(seed: UInt64) -> Model.Verdict {
     }
     return verdict
 }
-
-// MARK: - The direct trivial lane (+ the clone fork — clone forks the model too)
 
 private struct CloneStream: ~Copyable {
     var map: SlotMap<Int>
@@ -382,12 +350,10 @@ extension CloneStream {
         }
     }
 
-    /// The clone fork: the copy gets its own forked model; both run a few ops
-    /// independently; both audits must hold (handles live on both, divergence none).
     mutating func cloneFork() {
         verdict.record("clone-fork")
         var copy = map.clone()
-        var forked = model  // the model forks WITH the value
+        var forked = model
 
         for entry in forked.live {
             if !copy.contains(entry.handle) {
@@ -400,7 +366,6 @@ extension CloneStream {
             verdict.diverged(["clone re-validated a stale handle @\(entry.handle.index)"])
         }
 
-        // Diverge the copy: one insert (if space) + one removal (if live).
         if forked.liveCount < forked.capacity {
             let id = nextID
             nextID += 1
@@ -420,12 +385,10 @@ extension CloneStream {
             }
         }
 
-        // The fork holds on the copy…
         if copy.count != Index<Int>.Count(UInt(forked.liveCount)) {
             verdict.diverged(["forked count: copy \(copy.count), forked model \(forked.liveCount)"])
         }
-        // …and the ORIGINAL is untouched by the copy's divergence (the next
-        // regular audit re-proves it in full; count is the cheap immediate check).
+
         if map.count != Index<Int>.Count(UInt(model.liveCount)) {
             verdict.diverged(["clone divergence leaked into the original's count"])
         }
@@ -500,8 +463,6 @@ private func runCloneStream(seed: UInt64) -> Model.Verdict {
     return stream.finish()
 }
 
-// MARK: - The Shared (CoW) lane: the sibling fleet, each against its own fork
-
 private struct FleetStream {
     var siblings: [SlotMap<Int>.Shared]
     var models: [Reference]
@@ -523,18 +484,13 @@ extension FleetStream {
     mutating func fork() {
         let source = rng.below(siblings.count)
         verdict.record("fork ←\(source) (\(siblings.count + 1) siblings)")
-        siblings.append(siblings[source])  // the CoW moment: a plain value copy
-        models.append(models[source])  // the model forks with it
+        siblings.append(siblings[source])
+        models.append(models[source])
     }
 
     mutating func drop() {
         let target = rng.below(siblings.count)
-        // `siblings` is a stdlib Array (count: Int) — no typed Cardinal surface.
-        // The math IS the projected post-drop cardinality: remove(at:) leaves
-        // exactly count − 1 siblings, recorded before mutation (mirrors fork()).
-        // swift-linter:disable:next count minus one
-        // REASON: stdlib Array.count is Int, not Cardinal — no typed subtract
-        // surface exists here; this is a log-message projection, not indexing.
+
         verdict.record("drop \(target) (\(siblings.count - 1) siblings)")
         siblings.remove(at: target)
         models.remove(at: target)
@@ -610,7 +566,6 @@ extension FleetStream {
         }
     }
 
-    /// Every sibling against its OWN fork — the cross-sibling leak detector.
     func audit() -> [String] {
         var findings: [String] = []
         for (index, model) in models.enumerated() {
@@ -704,8 +659,6 @@ private func runFleetStream(seed: UInt64) -> Model.Verdict {
     return stream.verdict
 }
 
-// MARK: - The suites
-
 @Suite
 struct `SlotMap Model` {
     @Suite struct Unit {}
@@ -759,8 +712,8 @@ extension `SlotMap Model`.`Edge Case` {
         let removed: Int? = first.remove(handle)
         #expect(removed == 7)
 
-        var second = first  // fork at stale-handle state
-        _ = second.insert(9)  // detach
+        var second = first
+        _ = second.insert(9)
 
         let staleOnFirst = first.contains(handle)
         let staleOnSecond = second.contains(handle)

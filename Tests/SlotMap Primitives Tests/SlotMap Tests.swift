@@ -9,21 +9,8 @@ import Storage_Primitive
 import Store_Primitive
 import Testing
 
-// The column-keyed slot-map suite: the generational column direct + Shared-wrapped.
-
 private typealias Slots<E: ~Copyable> =
     Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<E>
-
-// The LEG-7 DEBUG carve-out is LIFTED (W5-1, 2026-06-10): the wall was root-caused as
-// catalog §A15 (the runtime cannot verify a conditional conformance with a same-type
-// ~Copyable RHS) and RETIRED by the Memory.Pooling re-bound — Storage.Generational's
-// seam conformance conditions are inverse-only now (arena 208c8d1 over pool 9dd38e7).
-// The preserved repro probe (.handoffs/probes-2026-06-10/slotmap-debug-crash/) passes
-// debug AND release against the re-bound packages; every suite below runs in BOTH
-// configs again, and the [DS-024] Shared-generational law test is re-enabled.
-
-// MARK: - [DS-024]: the Shared-wrapped generational column is lawful (the direct
-// column's law-run lives in the arena suite; this is the family's NEW composite)
 
 @Suite
 struct `Slot Map Column Law Tests` {
@@ -40,8 +27,6 @@ struct `Slot Map Column Law Tests` {
         #expect(violations.isEmpty, "\(violations)")
     }
 }
-
-// MARK: - The direct (move-only) lane
 
 @Suite(.serialized)
 struct `Slot Map Core Tests` {
@@ -81,7 +66,7 @@ struct `Slot Map Core Tests` {
         let h1 = m.insert(1)
         _ = m.insert(2)
         _ = m.remove(h1)
-        _ = m.insert(3)  // reuses slot 0 (fresh generation)
+        _ = m.insert(3)
         var seen: [Int] = []
         m.forEach { seen.append($0) }
         #expect(seen.sorted() == [2, 3])
@@ -108,8 +93,6 @@ struct `Slot Map Core Tests` {
     }
 }
 
-// MARK: - The CoW lane (the generation-preserving clone through the box)
-
 @Suite(.serialized)
 struct `Slot Map CoW Tests` {
     @Suite struct Unit {}
@@ -120,16 +103,16 @@ struct `Slot Map CoW Tests` {
     func `sibling handles survive a copy-on-write detach — live and stale alike`() {
         var a = SlotMap<Int>.Shared(slotCapacity: 4)
         let hStale = a.insert(1)
-        _ = a.remove(hStale)  // stale before the copy
+        _ = a.remove(hStale)
         let hLive = a.insert(2)
-        let b = a  // S5: SlotMap is Copyable because S is
-        a.insert(3)  // withUnique detaches a; b untouched
+        let b = a
+        a.insert(3)
         let aCount = a.count
         let bCount = b.count
         #expect(aCount == Index<Int>.Count(UInt(2)))
         #expect(bCount == Index<Int>.Count(UInt(1)))
         let liveOnBoth = a.contains(hLive) && b.contains(hLive)
-        #expect(liveOnBoth)  // THE generation-preserving guarantee
+        #expect(liveOnBoth)
         let staleOnBoth = a.contains(hStale) || b.contains(hStale)
         #expect(!staleOnBoth)
         let aV = a.withElement(at: hLive) { copy $0 }
@@ -151,7 +134,7 @@ struct `Slot Map CoW Tests` {
         let removedFromA: Int? = a.remove(h)
         #expect(removedFromA == 50)
         let stillOnB = b.contains(h)
-        #expect(stillOnB)  // b's box untouched by a's removal
+        #expect(stillOnB)
     }
 
     @Test
@@ -170,8 +153,6 @@ struct `Slot Map CoW Tests` {
         #expect(bHas)
     }
 }
-
-// MARK: - Teardown (the leaf oracle + the box drain; release leg = the -O regime)
 
 @Suite(.serialized)
 struct `Slot Map Teardown Tests` {
@@ -223,9 +204,7 @@ private struct MapItem: ~Copyable {
 private enum MapProbe {}
 
 extension MapProbe {
-    // SAFETY: allocated once at first access, mutated only through `reset()` /
-    // `record(_:)` on the single-threaded test-runner path — this is a
-    // test-fixture deinit tally, never touched concurrently.
+
     nonisolated(unsafe) static var _destroyed: [Int] = []
     static func reset() { unsafe _destroyed = [] }
     static func record(_ id: Int) { unsafe _destroyed.append(id) }
@@ -241,16 +220,12 @@ private struct MapItem2: ~Copyable {
 private enum MapProbe2 {}
 
 extension MapProbe2 {
-    // SAFETY: allocated once at first access, mutated only through `reset()` /
-    // `record(_:)` on the single-threaded test-runner path — this is a
-    // test-fixture deinit tally, never touched concurrently.
+
     nonisolated(unsafe) static var _destroyed: [Int] = []
     static func reset() { unsafe _destroyed = [] }
     static func record(_ id: Int) { unsafe _destroyed.append(id) }
     static var sorted: [Int] { unsafe _destroyed.sorted() }
 }
-
-// MARK: - Sendable smoke
 
 @Suite
 struct `Slot Map Sendable Tests` {
